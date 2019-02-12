@@ -10,6 +10,8 @@ import java.util.concurrent.BlockingQueue;
 public class App1 {
     private static String INSTANCE_APP;
     private static int CAPACITY_QUEUES;
+    private static int COUNT_EXECUCOES = 0;
+    private static volatile int COUNT_DELETE = 0;
 
     public static void main(String[] args) throws InterruptedException, IOException, NotBoundException {
         INSTANCE_APP = args[0];
@@ -28,6 +30,8 @@ public class App1 {
         final BlockingQueue<Integer> queueDelete = new ArrayBlockingQueue<Integer>(CAPACITY_QUEUES);
 
         while(contador <= limite){
+
+            COUNT_EXECUCOES++;
 
             queueInsert.put(contador);
 
@@ -62,9 +66,10 @@ public class App1 {
                     try {
                         Integer take = queueDelete.take();
                         userDao.delete(take);
-                        if (take == limite) {
-                            imprimirTempo(t0);
-                        }
+//                        if (take == limite) {
+//                            imprimirTempo(t0);
+//                        }
+                        COUNT_DELETE++;
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -81,11 +86,18 @@ public class App1 {
             contador = identity.getIdentity(INSTANCE_APP);
 
         }
+
+        while(true){
+            if(COUNT_EXECUCOES==COUNT_DELETE){
+                imprimirTempo(t0);
+                break;
+            }
+        }
     }
 
     private static void imprimirTempo(long inicio){
         long t1 = System.currentTimeMillis();
         long tempoTotal = t1 - inicio;
-        System.out.println("Durou: " + tempoTotal);
+        System.out.println(INSTANCE_APP + " durou: " + tempoTotal);
     }
 }
