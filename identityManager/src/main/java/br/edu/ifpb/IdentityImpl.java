@@ -6,16 +6,14 @@ import java.rmi.server.UnicastRemoteObject;
 
 public class IdentityImpl extends UnicastRemoteObject implements Identity {
 
-    final UserDao userDao = new UserDao();
+    int contador = 0;
 
     protected IdentityImpl() throws RemoteException {
         super();
     }
 
-    public int getIdentity(String INSTANCE_APP, int contador, int lastIdLocked) throws IOException {
-        //RESERVAR NOVO ID
-        contador = lastIdLocked + 1;
-        userDao.lockId(contador, INSTANCE_APP);
+    public synchronized int getIdentity(String INSTANCE_APP) throws IOException {
+        contador++;
         return contador;
     }
 }

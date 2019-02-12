@@ -1,10 +1,6 @@
 package br.edu.ifpb;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.rmi.NotBoundException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -13,45 +9,25 @@ import java.util.concurrent.BlockingQueue;
 
 public class App2 {
     private static String INSTANCE_APP;
-    private static String PATH_FILE_LOCK_SHARED;
     private static int CAPACITY_QUEUES;
 
     public static void main(String[] args) throws InterruptedException, IOException, NotBoundException {
         INSTANCE_APP = args[0];
-        PATH_FILE_LOCK_SHARED = args[1];
-        CAPACITY_QUEUES = Integer.valueOf(args[2]);
+        CAPACITY_QUEUES = Integer.valueOf(args[1]);
 
         final UserDao userDao = new UserDao();
 
-        int contador = 1;
+        Registry registry = LocateRegistry.getRegistry();
+        Identity identity = (Identity) registry.lookup("Identity");
+
+        int contador = identity.getIdentity(INSTANCE_APP);
         final int limite = 1000;
         final long t0 = System.currentTimeMillis();
         final BlockingQueue<Integer> queueInsert = new ArrayBlockingQueue<Integer>(CAPACITY_QUEUES);
         final BlockingQueue<Integer> queueUpdate = new ArrayBlockingQueue<Integer>(CAPACITY_QUEUES);
         final BlockingQueue<Integer> queueDelete = new ArrayBlockingQueue<Integer>(CAPACITY_QUEUES);
 
-        Registry registry = LocateRegistry.getRegistry();
-        Identity identity = (Identity) registry.lookup("Identity");
-
-        File fileLock = new File(PATH_FILE_LOCK_SHARED);
-        RandomAccessFile raf = new RandomAccessFile(fileLock, "rw");
-        FileChannel channel = raf.getChannel();
-
         while(contador <= limite){
-
-            //LOCK DATABASE BETWEEN FILE LOCK SHARED
-            FileLock lock = channel.lock();
-            int lastIdLocked = userDao.getLastIdLocked();
-            if (lastIdLocked == limite) {
-                //JÁ HOUVE RESERVAS ATÉ O LIMITE
-                lock.release();
-                imprimirTempo(t0);
-                break;
-            } else {
-                contador = identity.getIdentity(INSTANCE_APP, contador, lastIdLocked);
-                lock.release();
-                //UNLOCK DATABASE
-            }
 
             queueInsert.put(contador);
 
@@ -102,7 +78,7 @@ public class App2 {
             threadUpdate.start();
             threadDelete.start();
 
-            contador ++;
+            contador = identity.getIdentity(INSTANCE_APP);
 
         }
     }
@@ -110,6 +86,6 @@ public class App2 {
     private static void imprimirTempo(long inicio){
         long t1 = System.currentTimeMillis();
         long tempoTotal = t1 - inicio;
-        System.out.println(INSTANCE_APP + " - Durou: " + tempoTotal);
+        System.out.println("Durou: " + tempoTotal);
     }
 }
